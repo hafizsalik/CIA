@@ -244,8 +244,37 @@ private fun HomeScreen(
                 }
             } else {
                 Text("تراکنش‌های این بازه", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                if (filtered.isEmpty()) Empty("تراکنشی وجود ندارد", "تراکنش‌های ثبت‌شده در این بازه اینجا نمایش داده می‌شوند.")
-                else filtered.forEach { item -> TxRow(item) {} }
+                Text(filtered.size.toString() + " مورد", color = Color(0xFF707070), fontSize = 10.sp)
+                OutlinedTextField(
+                    value = search, onValueChange = { search = it }, modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("جستجوی نام، توضیحات و طرف‌حساب", fontSize = 11.sp) },
+                    singleLine = true, shape = RoundedCornerShape(30.dp),
+                    trailingIcon = { Text("⌕", fontSize = 20.sp) }
+                )
+                val visibleTransactions = filtered.filter { item ->
+                    listOfNotNull(item.party, item.description, item.type, item.category)
+                        .any { it.contains(search.trim(), ignoreCase = true) }
+                }
+                if (visibleTransactions.isEmpty()) Empty("تراکنشی پیدا نشد", "عبارت جست‌وجو را تغییر دهید یا بازه زمانی دیگری انتخاب کنید.")
+                else visibleTransactions.forEach { item ->
+                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.width(88.dp)) {
+                                Text(dateTime(item.occurredAt).substringAfter(" "), fontSize = 9.sp, color = Color(0xFF707070))
+                                Text(dateTime(item.occurredAt).substringBefore(" "), fontSize = 9.sp, color = Color(0xFF707070))
+                            }
+                            Column(Modifier.weight(1f)) {
+                                Text(item.party ?: item.type, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text(item.description ?: item.category ?: item.type, fontSize = 9.sp, color = Color(0xFF707070), maxLines = 2)
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                val positive = item.type in setOf("درآمد", "پول گرفتم", "هدیه گرفتم", "قرض گرفتم")
+                                Text(money(item.amount), color = if (positive) Color(0xFF1B7F00) else Color(0xFFCF0202), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text(if (positive) "دریافت کردم" else "پرداخت کردم", fontSize = 9.sp, color = Color(0xFF707070))
+                            }
+                        }
+                    }
+                }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(onClick = people, modifier = Modifier.weight(1f), shape = RoundedCornerShape(30.dp), colors = ButtonDefaults.buttonColors(containerColor = navy)) { Text("طرف‌حساب‌ها", fontSize = 11.sp) }

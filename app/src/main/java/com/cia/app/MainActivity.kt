@@ -67,6 +67,7 @@ private fun CiaApp() {
     var showTypePicker by remember { mutableStateOf(false) }
     var selectedType by remember { mutableStateOf("پول گرفتم") }
     var addAccount by remember { mutableStateOf(false) }
+    var addParty by remember { mutableStateOf(false) }
     var showTrash by remember { mutableStateOf(false) }
 
     LaunchedEffect(accounts.isEmpty()) {
@@ -93,7 +94,7 @@ private fun CiaApp() {
             } else {
                 Column(Modifier.fillMaxSize().padding(16.dp)) {
                     when (tab) {
-                        1 -> PartiesScreen(txs)
+                        1 -> PartiesScreen(txs) { addParty = true }
                         2 -> AccountList(accounts, txs) { addAccount = true }
                         3 -> ReportsScreen(txs)
                         4 -> TransactionList(txs, { addTx = true }) { id -> scope.launch { dao.moveToTrash(id, System.currentTimeMillis()) } }
@@ -116,6 +117,7 @@ private fun CiaApp() {
             addTx = false
         }
     }
+    if (addParty) NewPartyDialog(onClose = { addParty = false }) { addParty = false }
     if (addAccount) AccountDialog(onClose = { addAccount = false }) { name, opening ->
         scope.launch {
             dao.insertAccount(AccountEntity(UUID.randomUUID().toString(), name, opening))
@@ -404,19 +406,72 @@ private fun AccountList(accounts: List<AccountEntity>, txs: List<TransactionEnti
 }
 
 @Composable
-private fun PartiesScreen(txs: List<TransactionEntity>) {
-    val parties = txs.mapNotNull { it.party?.takeIf { name -> name.isNotBlank() } }.distinct().sorted()
-    Heading("اشخاص", "طرف‌حساب‌های ثبت‌شده در تراکنش‌ها")
-    if (parties.isEmpty()) Empty("هنوز شخصی ثبت نشده است", "هنگام ثبت تراکنش، نام طرف‌حساب را وارد کنید تا اینجا نمایش داده شود.")
-    else parties.forEach { name ->
-        val count = txs.count { it.party == name }
-        Card(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-            Column(Modifier.padding(15.dp)) {
-                Text(name, fontWeight = FontWeight.SemiBold)
-                Text(count.toString() + " تراکنش", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun PartiesScreen(txs: List<TransactionEntity>, add: () -> Unit) {
+    val context = LocalContext.current
+    val saved = remember { context.getSharedPreferences("cia_parties", android.content.Context.MODE_PRIVATE).getString("records", "[]") ?: "[]" }
+    val savedNames = remember(saved) {
+        runCatching {
+            val array = org.json.JSONArray(saved)
+            (0 until array.length()).mapNotNull { array.optJSONObject(it)?.optString("name")?.takeIf(String::isNotBlank) }
+        }.getOrDefault(emptyList())
+    }
+    val parties = (txs.mapNotNull { it.party?.takeIf { name -> name.isNotBlank() } } + savedNames).distinct().sorted()
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Heading("طرف حساب‌ها", "اطلاعات اشخاص و طرف‌حساب‌های شما")
+        Button(onClick = add, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF152F8C))) { Text("＋ طرف حساب جدید") }
+        if (parties.isEmpty()) Empty("هنوز شخصی ثبت نشده است", "برای افزودن مشخصات، دکمه طرف حساب جدید را بزنید.")
+        else parties.forEach { name ->
+            val count = txs.count { it.party == name }
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(15.dp)) {
+                    Text(name, fontWeight = FontWeight.SemiBold)
+                    Text(count.toString() + " تراکنش", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
     }
+}
+
+@Composable
+private fun NewPartyDialog(onClose: () -> Unit, onSaved: () -> Unit) {
+    val context = LocalContext.current
+    var name by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var nationalCode by remember { mutableStateOf("") }
+    var postalCode by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text("طرف حساب جدید", color = Color(0xFF152F8C), fontWeight = FontWeight.Bold) },
+        text = {
+            Column(Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                OutlinedTextField(name, { name = it; error = "" }, label = { Text("نام و نام خانوادگی") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(phone, { phone = it.filter { ch -> ch.isDigit() || ch == '+' || ch == ' ' } }, label = { Text("شماره تماس") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(nationalCode, { nationalCode = it.filter(Char::isDigit) }, label = { Text("کد ملی (اختیاری)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(postalCode, { postalCode = it.filter(Char::isDigit) }, label = { Text("کد پستی (اختیاری)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(description, { description = it }, label = { Text("توضیحات") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, fontSize = 11.sp)
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                if (name.isBlank() || phone.isBlank()) error = "نام و شماره تماس را وارد کنید."
+                else {
+                    val prefs = context.getSharedPreferences("cia_parties", android.content.Context.MODE_PRIVATE)
+                    val array = runCatching { org.json.JSONArray(prefs.getString("records", "[]")) }.getOrElse { org.json.JSONArray() }
+                    val duplicate = (0 until array.length()).any { array.optJSONObject(it)?.optString("phone") == phone.trim() }
+                    if (duplicate) error = "این شماره تماس قبلاً ثبت شده است."
+                    else {
+                        array.put(org.json.JSONObject().put("name", name.trim()).put("phone", phone.trim()).put("nationalCode", nationalCode.trim()).put("postalCode", postalCode.trim()).put("description", description.trim()))
+                        prefs.edit().putString("records", array.toString()).apply()
+                        onSaved()
+                    }
+                }
+            }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF152F8C))) { Text("ثبت طرف حساب") }
+        },
+        dismissButton = { TextButton(onClick = onClose) { Text("انصراف") } }
+    )
 }
 
 @Composable

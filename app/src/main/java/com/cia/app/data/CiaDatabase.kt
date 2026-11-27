@@ -62,6 +62,9 @@ interface CiaDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertParty(party: PartyEntity)
 
+    @Query("SELECT * FROM parties WHERE phone = :phone LIMIT 1")
+    suspend fun findPartyByPhone(phone: String): PartyEntity?
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAccount(account: AccountEntity)
 

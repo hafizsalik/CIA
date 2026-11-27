@@ -202,7 +202,7 @@ private fun HomeScreen(
                     val selected = innerTab == i
                     Column(Modifier.weight(1f).clip(RoundedCornerShape(topStart = 15.dp, topEnd = 15.dp))
                         .background(if (selected) Color.White else Color(0xFF2542AA))
-                        .clickable { innerTab = i; if (i == 1) all() }.padding(vertical = 13.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        .clickable { innerTab = i }.padding(vertical = 13.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(label, color = if (selected) navy else Color.White.copy(alpha = .8f), fontSize = 13.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
                         if (selected) Spacer(Modifier.padding(top = 6.dp).height(2.dp).fillMaxWidth(.48f).background(navy, CircleShape))
                     }
@@ -376,7 +376,7 @@ private fun TransactionList(txs: List<TransactionEntity>, add: () -> Unit, delet
 
 @Composable
 private fun TxRow(item: TransactionEntity, delete: () -> Unit) {
-    val positive = item.type in setOf("درآمد", "پول گرفتم", "هزینه کردم", "هدیه گرفتم", "قرض گرفتم")
+    val positive = item.type in setOf("درآمد", "پول گرفتم", "هدیه گرفتم", "قرض گرفتم")
     Card(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {

@@ -8,3 +8,7 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
+
+# Node / Vite / Capacitor web build
+node_modules/
+dist/

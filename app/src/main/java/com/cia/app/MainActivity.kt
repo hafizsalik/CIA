@@ -50,7 +50,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF246B57), secondary = Color(0xFFB58A45))) {
+            MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF152F8C), secondary = Color(0xFFB58A45), background = Color(0xFFF5F5F5), surface = Color.White, surfaceVariant = Color(0xFFEFF2FA))) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     Surface(Modifier.fillMaxSize()) { CiaApp() }
                 }

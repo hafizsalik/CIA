@@ -67,7 +67,7 @@ private fun CiaApp() {
     var showTypePicker by remember { mutableStateOf(false) }
     var selectedType by remember { mutableStateOf("پول گرفتم") }
     var addAccount by remember { mutableStateOf(false) }
-    var addParty by remember { mutableStateOf(false) }
+    var showNewParty by remember { mutableStateOf(false) }
     var showTrash by remember { mutableStateOf(false) }
 
     LaunchedEffect(accounts.isEmpty()) {
@@ -94,7 +94,7 @@ private fun CiaApp() {
             } else {
                 Column(Modifier.fillMaxSize().padding(16.dp)) {
                     when (tab) {
-                        1 -> PartiesScreen(txs) { addParty = true }
+                        1 -> if (showNewParty) NewPartyScreen(onBack = { showNewParty = false }, onSaved = { showNewParty = false }) else PartiesScreen(txs) { showNewParty = true }
                         2 -> AccountList(accounts, txs) { addAccount = true }
                         3 -> ReportsScreen(txs)
                         4 -> TransactionList(txs, { addTx = true }) { id -> scope.launch { dao.moveToTrash(id, System.currentTimeMillis()) } }
@@ -117,7 +117,6 @@ private fun CiaApp() {
             addTx = false
         }
     }
-    if (addParty) NewPartyDialog(onClose = { addParty = false }) { addParty = false }
     if (addAccount) AccountDialog(onClose = { addAccount = false }) { name, opening ->
         scope.launch {
             dao.insertAccount(AccountEntity(UUID.randomUUID().toString(), name, opening))
@@ -408,7 +407,7 @@ private fun AccountList(accounts: List<AccountEntity>, txs: List<TransactionEnti
 @Composable
 private fun PartiesScreen(txs: List<TransactionEntity>, add: () -> Unit) {
     val context = LocalContext.current
-    val saved = remember { context.getSharedPreferences("cia_parties", android.content.Context.MODE_PRIVATE).getString("records", "[]") ?: "[]" }
+    val saved = context.getSharedPreferences("cia_parties", android.content.Context.MODE_PRIVATE).getString("records", "[]") ?: "[]"
     val savedNames = remember(saved) {
         runCatching {
             val array = org.json.JSONArray(saved)
@@ -433,7 +432,7 @@ private fun PartiesScreen(txs: List<TransactionEntity>, add: () -> Unit) {
 }
 
 @Composable
-private fun NewPartyDialog(onClose: () -> Unit, onSaved: () -> Unit) {
+private fun NewPartyScreen(onBack: () -> Unit, onSaved: () -> Unit) {
     val context = LocalContext.current
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
@@ -441,37 +440,35 @@ private fun NewPartyDialog(onClose: () -> Unit, onSaved: () -> Unit) {
     var postalCode by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onClose,
-        title = { Text("طرف حساب جدید", color = Color(0xFF152F8C), fontWeight = FontWeight.Bold) },
-        text = {
-            Column(Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                OutlinedTextField(name, { name = it; error = "" }, label = { Text("نام و نام خانوادگی") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(phone, { phone = it.filter { ch -> ch.isDigit() || ch == '+' || ch == ' ' } }, label = { Text("شماره تماس") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(nationalCode, { nationalCode = it.filter(Char::isDigit) }, label = { Text("کد ملی (اختیاری)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(postalCode, { postalCode = it.filter(Char::isDigit) }, label = { Text("کد پستی (اختیاری)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(description, { description = it }, label = { Text("توضیحات") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
-                if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, fontSize = 11.sp)
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                if (name.isBlank() || phone.isBlank()) error = "نام و شماره تماس را وارد کنید."
+    val navy = Color(0xFF152F8C)
+    Column(Modifier.fillMaxSize().background(Color(0xFFF5F5F5))) {
+        Row(Modifier.fillMaxWidth().height(138.dp).background(navy).padding(horizontal = 22.dp), verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onBack) { Text("‹", color = Color.White, fontSize = 30.sp) }
+            Text("طرف حساب جدید", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 28.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            OutlinedTextField(name, { name = it; error = "" }, label = { Text("نام و نام خانوادگی") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(6.dp))
+            OutlinedTextField(phone, { phone = it.filter { ch -> ch.isDigit() || ch == '+' || ch == ' ' } }, label = { Text("شماره تماس") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(6.dp))
+            OutlinedTextField(nationalCode, { nationalCode = it.filter(Char::isDigit) }, label = { Text("کد ملی (اختیاری)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(6.dp))
+            OutlinedTextField(postalCode, { postalCode = it.filter(Char::isDigit) }, label = { Text("کد پستی (اختیاری)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(6.dp))
+            OutlinedTextField(description, { description = it }, label = { Text("توضیحات") }, modifier = Modifier.fillMaxWidth(), minLines = 4, shape = RoundedCornerShape(6.dp))
+            if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, fontSize = 11.sp)
+        }
+        Button(onClick = {
+            if (name.isBlank() || phone.isBlank()) error = "نام و شماره تماس را وارد کنید."
+            else {
+                val prefs = context.getSharedPreferences("cia_parties", android.content.Context.MODE_PRIVATE)
+                val array = runCatching { org.json.JSONArray(prefs.getString("records", "[]")) }.getOrElse { org.json.JSONArray() }
+                val duplicate = (0 until array.length()).any { array.optJSONObject(it)?.optString("phone") == phone.trim() }
+                if (duplicate) error = "این شماره تماس قبلاً ثبت شده است."
                 else {
-                    val prefs = context.getSharedPreferences("cia_parties", android.content.Context.MODE_PRIVATE)
-                    val array = runCatching { org.json.JSONArray(prefs.getString("records", "[]")) }.getOrElse { org.json.JSONArray() }
-                    val duplicate = (0 until array.length()).any { array.optJSONObject(it)?.optString("phone") == phone.trim() }
-                    if (duplicate) error = "این شماره تماس قبلاً ثبت شده است."
-                    else {
-                        array.put(org.json.JSONObject().put("name", name.trim()).put("phone", phone.trim()).put("nationalCode", nationalCode.trim()).put("postalCode", postalCode.trim()).put("description", description.trim()))
-                        prefs.edit().putString("records", array.toString()).apply()
-                        onSaved()
-                    }
+                    array.put(org.json.JSONObject().put("name", name.trim()).put("phone", phone.trim()).put("nationalCode", nationalCode.trim()).put("postalCode", postalCode.trim()).put("description", description.trim()))
+                    prefs.edit().putString("records", array.toString()).apply()
+                    onSaved()
                 }
-            }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF152F8C))) { Text("ثبت طرف حساب") }
-        },
-        dismissButton = { TextButton(onClick = onClose) { Text("انصراف") } }
-    )
+            }
+        }, modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).height(62.dp).padding(bottom = 8.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = navy)) { Text("ثبت طرف حساب", fontSize = 17.sp, fontWeight = FontWeight.Bold) }
+    }
 }
 
 @Composable

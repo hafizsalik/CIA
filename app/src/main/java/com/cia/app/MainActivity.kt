@@ -24,6 +24,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -254,7 +256,7 @@ private fun HomeScreen(
                 }
                 OutlinedTextField(value = search, onValueChange = { search = it }, modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("جستجوی نام و شماره", fontSize = 12.sp) }, singleLine = true,
-                    shape = RoundedCornerShape(30.dp), trailingIcon = { Text("⌕", fontSize = 20.sp) })
+                    shape = RoundedCornerShape(30.dp), trailingIcon = { Icon(Icons.Filled.Search, contentDescription = "جست‌وجو") })
                 if (parties.isEmpty()) Empty("طرف‌حسابی برای نمایش وجود ندارد", "در ثبت تراکنش، نام طرف‌حساب را وارد کنید.")
                 else parties.forEach { p ->
                     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
@@ -417,7 +419,7 @@ private fun AccountList(accounts: List<AccountEntity>, txs: List<TransactionEnti
         val balance = a.openingBalance + txs.filter { it.accountId == a.id }.sumOf { signed(it) }
         Card(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("▣", fontSize = 24.sp, color = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Filled.AccountBalanceWallet, contentDescription = "حساب", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(26.dp))
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(a.name, fontWeight = FontWeight.SemiBold)
@@ -478,7 +480,7 @@ private fun NewPartyScreen(existing: List<PartyEntity>, onBack: () -> Unit, onSa
     val navy = Color(0xFF152F8C)
     Column(Modifier.fillMaxSize().background(Color(0xFFF5F5F5))) {
         Row(Modifier.fillMaxWidth().height(138.dp).background(navy).padding(horizontal = 22.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("‹", color = Color.White, fontSize = 30.sp) }
+            IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "بازگشت", tint = Color.White) }
             Text("طرف حساب جدید", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 28.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -536,7 +538,7 @@ private fun MoreScreen(count: Int, openTrash: () -> Unit) {
 private fun Empty(title: String, detail: String) {
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .5f))) {
         Column(Modifier.fillMaxWidth().padding(22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("○", fontSize = 28.sp, color = MaterialTheme.colorScheme.primary)
+            Icon(Icons.Filled.ReceiptLong, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
             Text(title, fontWeight = FontWeight.SemiBold)
             Text(detail, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -630,7 +632,7 @@ private fun MenuField(value: String, expanded: Boolean, setExpanded: (Boolean) -
     Column {
         OutlinedButton(onClick = { setExpanded(true) }, modifier = Modifier.fillMaxWidth()) {
             Text(value, modifier = Modifier.weight(1f))
-            Text("⌄")
+            Icon(Icons.Filled.ExpandMore, contentDescription = null)
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { setExpanded(false) }) {
             options.forEach { option -> DropdownMenuItem(text = { Text(option) }, onClick = { selected(option); setExpanded(false) }) }

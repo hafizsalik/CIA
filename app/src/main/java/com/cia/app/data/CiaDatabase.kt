@@ -83,7 +83,7 @@ interface CiaDao {
     @Query("DELETE FROM transactions WHERE id = :id")
     suspend fun permanentlyDelete(id: String)
 
-    @Query("SELECT COALESCE(SUM(CASE WHEN type IN ('درآمد','پول گرفتم','هدیه گرفتم','قرض گرفتم') THEN amount WHEN type IN ('هزینه','پول دادم','هدیه دادم','قرض دادم') THEN -amount ELSE 0 END), 0) FROM transactions WHERE deletedAt IS NULL")
+    @Query("SELECT COALESCE(SUM(CASE WHEN type IN ('درآمد','پول گرفتم','هدیه گرفتم','قرض گرفتم') THEN amount WHEN type IN ('هزینه','هزینه کردم','خرج کردم','پول دادم','هدیه دادم','قرض دادم') THEN -amount ELSE 0 END), 0) FROM transactions WHERE deletedAt IS NULL")
     suspend fun netTransactions(): Long
 
     @Query("SELECT COUNT(*) FROM transactions WHERE deletedAt IS NULL")

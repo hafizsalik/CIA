@@ -505,7 +505,7 @@ private fun NewPartyScreen(existing: List<PartyEntity>, onBack: () -> Unit, onSa
             IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "بازگشت", tint = Color.White) }
             Text("طرف حساب جدید", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         }
-        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(top = 45.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(23.dp)) {
+        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(top = 67.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(29.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                 OutlinedButton(onClick = { contactPicker.launch(null) }, modifier = Modifier.width(92.dp).height(94.dp), shape = RoundedCornerShape(6.dp), contentPadding = PaddingValues(4.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF001870))) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -528,7 +528,7 @@ private fun NewPartyScreen(existing: List<PartyEntity>, onBack: () -> Unit, onSa
         }, modifier = Modifier.fillMaxWidth().padding(horizontal = 59.dp).height(94.dp).padding(bottom = 0.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = navy)) {
             Text("ثبت طرف حساب", fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(95.dp))
     }
 }
 

@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private val tabs = listOf("خانه", "تراکنش‌ها", "پیامک‌ها", "حساب‌ها", "بیشتر")
+private val tabs = listOf("خانه", "اشخاص", "حساب‌ها", "گزارش‌ها")
 private val types = listOf("پول گرفتم", "پول دادم", "درآمد", "هزینه", "هدیه گرفتم", "هدیه دادم", "انتقال بین حساب‌ها", "قرض دادم", "قرض گرفتم", "تسویه بدهی")
 private val partyTypes = setOf("پول گرفتم", "پول دادم", "قرض دادم", "قرض گرفتم", "تسویه بدهی")
 
@@ -67,21 +67,23 @@ private fun CiaApp() {
             NavigationBar {
                 tabs.forEachIndexed { i, label ->
                     NavigationBarItem(selected = tab == i, onClick = { tab = i },
-                        icon = { Text(listOf("⌂", "⇄", "✉", "▣", "•••")[i]) },
+                        icon = { Text(listOf("⌂", "♙", "▣", "▤")[i]) },
                         label = { Text(label, fontSize = 10.sp) })
                 }
             }
         },
         floatingActionButton = {
-            if (tab == 0 || tab == 1) FloatingActionButton(onClick = { addTx = true }) { Text("+", fontSize = 24.sp) }
+            if (tab == 0 || tab == 4) FloatingActionButton(onClick = { addTx = true }) { Text("+", fontSize = 24.sp) }
         }
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad).padding(16.dp)) {
             when (tab) {
-                0 -> HomeScreen(accounts, txs, { addTx = true }, { tab = 1 })
-                1 -> TransactionList(txs, { addTx = true }) { id -> scope.launch { dao.moveToTrash(id, System.currentTimeMillis()) } }
-                2 -> SmsScreen()
-                3 -> AccountList(accounts, txs) { addAccount = true }
+                0 -> HomeScreen(accounts, txs, { addTx = true }, { tab = 4 })
+                1 -> PartiesScreen(txs)
+                2 -> AccountList(accounts, txs) { addAccount = true }
+                3 -> ReportsScreen(txs)
+                4 -> TransactionList(txs, { addTx = true }) { id -> scope.launch { dao.moveToTrash(id, System.currentTimeMillis()) } }
+                5 -> SmsScreen()
                 else -> MoreScreen(trash.size) { showTrash = true }
             }
         }
@@ -118,9 +120,10 @@ private fun HomeScreen(accounts: List<AccountEntity>, txs: List<TransactionEntit
     val income = txs.filter { it.type in setOf("درآمد", "پول گرفتم", "هدیه گرفتم", "قرض گرفتم") }.sumOf { it.amount }
     val expense = txs.filter { it.type in setOf("هزینه", "پول دادم", "هدیه دادم", "قرض دادم") }.sumOf { it.amount }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Text("CIA  •  مدیریت مالی شخصی", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(16.dp))
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)) {
+        Text("دفتر حساب و کتاب", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        Text("مدیریت مالی شخصی شما", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(18.dp))
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF174F43))) {
             Column(Modifier.fillMaxWidth().padding(20.dp)) {
                 Text("موجودی کل حساب‌ها", color = Color.White.copy(alpha = .8f))
                 Text(money(balance) + " تومان", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
@@ -203,6 +206,35 @@ private fun AccountList(accounts: List<AccountEntity>, txs: List<TransactionEnti
             }
         }
     }
+}
+
+@Composable
+private fun PartiesScreen(txs: List<TransactionEntity>) {
+    val parties = txs.mapNotNull { it.party?.takeIf { name -> name.isNotBlank() } }.distinct().sorted()
+    Heading("اشخاص", "طرف‌حساب‌های ثبت‌شده در تراکنش‌ها")
+    if (parties.isEmpty()) Empty("هنوز شخصی ثبت نشده است", "هنگام ثبت تراکنش، نام طرف‌حساب را وارد کنید تا اینجا نمایش داده شود.")
+    else parties.forEach { name ->
+        val count = txs.count { it.party == name }
+        Card(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+            Column(Modifier.padding(15.dp)) {
+                Text(name, fontWeight = FontWeight.SemiBold)
+                Text(count.toString() + " تراکنش", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReportsScreen(txs: List<TransactionEntity>) {
+    val income = txs.filter { it.type in setOf("درآمد", "پول گرفتم", "هدیه گرفتم", "قرض گرفتم") }.sumOf { it.amount }
+    val expense = txs.filter { it.type in setOf("هزینه", "پول دادم", "هدیه دادم", "قرض دادم") }.sumOf { it.amount }
+    Heading("گزارش‌ها", "خلاصه دریافت‌ها و پرداخت‌ها")
+    Metric("مجموع دریافتی", income, Color(0xFF287B55), Modifier.fillMaxWidth())
+    Spacer(Modifier.height(10.dp))
+    Metric("مجموع پرداختی", expense, Color(0xFFB64C4C), Modifier.fillMaxWidth())
+    Spacer(Modifier.height(10.dp))
+    Text("تعداد تراکنش‌ها: " + txs.size.toString(), fontWeight = FontWeight.SemiBold)
+    Text("گزارش‌های تفصیلی و خروجی PDF و Excel در مرحله بعد تکمیل می‌شوند.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable

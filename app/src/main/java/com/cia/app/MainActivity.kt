@@ -69,6 +69,7 @@ private fun CiaApp() {
     val dao = remember { CiaDatabase.get(context).dao() }
     val scope = rememberCoroutineScope()
     val accounts by dao.observeAccounts().collectAsState(initial = emptyList())
+    val parties by dao.observeParties().collectAsState(initial = emptyList())
     val txs by dao.observeTransactions().collectAsState(initial = emptyList())
     val trash by dao.observeTrash().collectAsState(initial = emptyList())
     var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -103,7 +104,7 @@ private fun CiaApp() {
             } else {
                 Column(Modifier.fillMaxSize().padding(16.dp)) {
                     when (tab) {
-                        1 -> if (showNewParty) NewPartyScreen(onBack = { showNewParty = false }, onSaved = { showNewParty = false }) else PartiesScreen(txs) { showNewParty = true }
+                        1 -> if (showNewParty) NewPartyScreen(parties, onBack = { showNewParty = false }, onSaved = { party -> scope.launch { dao.insertParty(party); showNewParty = false } }) else PartiesScreen(parties, txs) { showNewParty = true }
                         2 -> AccountList(accounts, txs) { addAccount = true }
                         3 -> ReportsScreen(txs)
                         4 -> TransactionList(txs, { addTx = true }) { id -> scope.launch { dao.moveToTrash(id, System.currentTimeMillis()) } }
@@ -414,26 +415,36 @@ private fun AccountList(accounts: List<AccountEntity>, txs: List<TransactionEnti
 }
 
 @Composable
-private fun PartiesScreen(txs: List<TransactionEntity>, add: () -> Unit) {
-    val context = LocalContext.current
-    val saved = context.getSharedPreferences("cia_parties", android.content.Context.MODE_PRIVATE).getString("records", "[]") ?: "[]"
-    val savedNames = remember(saved) {
-        runCatching {
-            val array = org.json.JSONArray(saved)
-            (0 until array.length()).mapNotNull { array.optJSONObject(it)?.optString("name")?.takeIf(String::isNotBlank) }
-        }.getOrDefault(emptyList())
-    }
-    val parties = (txs.mapNotNull { it.party?.takeIf { name -> name.isNotBlank() } } + savedNames).distinct().sorted()
+private fun PartiesScreen(parties: List<PartyEntity>, txs: List<TransactionEntity>, add: () -> Unit) {
+    val transactionNames = txs.mapNotNull { it.party?.takeIf(String::isNotBlank) }
+    val names = (parties.map { it.name } + transactionNames).distinct().sorted()
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Heading("طرف حساب‌ها", "اطلاعات اشخاص و طرف‌حساب‌های شما")
         Button(onClick = add, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF152F8C))) { Text("＋ طرف حساب جدید") }
-        if (parties.isEmpty()) Empty("هنوز شخصی ثبت نشده است", "برای افزودن مشخصات، دکمه طرف حساب جدید را بزنید.")
-        else parties.forEach { name ->
+        if (names.isEmpty()) Empty("هنوز شخصی ثبت نشده است", "برای افزودن مشخصات، دکمه طرف حساب جدید را بزنید.")
+        else names.forEach { name ->
             val count = txs.count { it.party == name }
+            val balance = txs.filter { it.party == name }.sumOf { item ->
+                when (item.type) {
+                    "پول دادم", "قرض دادم" -> item.amount
+                    "پول گرفتم", "قرض گرفتم" -> -item.amount
+                    else -> 0L
+                }
+            }
             Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(15.dp)) {
-                    Text(name, fontWeight = FontWeight.SemiBold)
-                    Text(count.toString() + " تراکنش", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Surface(Modifier.size(44.dp), shape = CircleShape, color = Color(0xFFE8EDF9)) {
+                        Box(contentAlignment = Alignment.Center) { Text(name.take(1), color = Color(0xFF152F8C), fontWeight = FontWeight.Bold) }
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(name, fontWeight = FontWeight.SemiBold)
+                        Text("$count تراکنش", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(money(kotlin.math.abs(balance)), fontWeight = FontWeight.Bold, color = if (balance >= 0) Color(0xFF1B7F00) else Color(0xFFCF0202))
+                        Text(if (balance >= 0) "طلبکارم" else "بدهکارم", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }
@@ -441,7 +452,7 @@ private fun PartiesScreen(txs: List<TransactionEntity>, add: () -> Unit) {
 }
 
 @Composable
-private fun NewPartyScreen(onBack: () -> Unit, onSaved: () -> Unit) {
+private fun NewPartyScreen(existing: List<PartyEntity>, onBack: () -> Unit, onSaved: (PartyEntity) -> Unit) {
     val context = LocalContext.current
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
@@ -466,15 +477,8 @@ private fun NewPartyScreen(onBack: () -> Unit, onSaved: () -> Unit) {
         Button(onClick = {
             if (name.isBlank() || phone.isBlank()) error = "نام و شماره تماس را وارد کنید."
             else {
-                val prefs = context.getSharedPreferences("cia_parties", android.content.Context.MODE_PRIVATE)
-                val array = runCatching { org.json.JSONArray(prefs.getString("records", "[]")) }.getOrElse { org.json.JSONArray() }
-                val duplicate = (0 until array.length()).any { array.optJSONObject(it)?.optString("phone") == phone.trim() }
-                if (duplicate) error = "این شماره تماس قبلاً ثبت شده است."
-                else {
-                    array.put(org.json.JSONObject().put("name", name.trim()).put("phone", phone.trim()).put("nationalCode", nationalCode.trim()).put("postalCode", postalCode.trim()).put("description", description.trim()))
-                    prefs.edit().putString("records", array.toString()).apply()
-                    onSaved()
-                }
+                if (existing.any { it.phone == phone.trim() }) error = "این شماره تماس قبلاً ثبت شده است."
+                else onSaved(PartyEntity(UUID.randomUUID().toString(), name.trim(), phone.trim(), nationalCode.trim(), postalCode.trim(), description.trim()))
             }
         }, modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).height(62.dp).padding(bottom = 8.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = navy)) { Text("ثبت طرف حساب", fontSize = 17.sp, fontWeight = FontWeight.Bold) }
     }

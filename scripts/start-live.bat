@@ -40,7 +40,7 @@ echo.
 call npm run build
 if errorlevel 1 goto failed
 
-start "CIA Web Dev Server" cmd /k "cd /d "%CD%" && npm run dev"
+start "CIA Web Dev Server" /D "%CD%" cmd /k "npm run dev"
 timeout /t 3 /nobreak >nul
 
 echo اکنون برنامه آزمايشي روي دستگاه اندرويدي نصب/اجرا مي‌شود.

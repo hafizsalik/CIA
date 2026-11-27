@@ -64,6 +64,8 @@ private fun CiaApp() {
     val trash by dao.observeTrash().collectAsState(initial = emptyList())
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var addTx by remember { mutableStateOf(false) }
+    var showTypePicker by remember { mutableStateOf(false) }
+    var selectedType by remember { mutableStateOf("پول گرفتم") }
     var addAccount by remember { mutableStateOf(false) }
     var showTrash by remember { mutableStateOf(false) }
 
@@ -82,12 +84,12 @@ private fun CiaApp() {
             }
         },
         floatingActionButton = {
-            if (tab == 0 || tab == 4) FloatingActionButton(onClick = { addTx = true }) { Text("+", fontSize = 24.sp) }
+            if (tab == 0 || tab == 4) FloatingActionButton(onClick = { showTypePicker = true }) { Text("+", fontSize = 24.sp) }
         }
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {
             if (tab == 0) {
-                HomeScreen(accounts, txs, { addTx = true }, { tab = 4 }, { tab = 1 }, { tab = 2 }, { tab = 3 })
+                HomeScreen(accounts, txs, { showTypePicker = true }, { tab = 4 }, { tab = 1 }, { tab = 2 }, { tab = 3 })
             } else {
                 Column(Modifier.fillMaxSize().padding(16.dp)) {
                     when (tab) {
@@ -103,7 +105,11 @@ private fun CiaApp() {
         }
     }
 
-    if (addTx) TransactionDialog(accounts, onClose = { addTx = false }) { item ->
+    if (showTypePicker) TransactionTypeSheet(
+        onDismiss = { showTypePicker = false },
+        onSelect = { kind -> selectedType = kind; showTypePicker = false; addTx = true }
+    )
+    if (addTx) TransactionDialog(accounts, initialType = selectedType, onClose = { addTx = false }) { item ->
         scope.launch {
             val number = (txs.maxOfOrNull { it.number } ?: 1000L) + 1L
             dao.insertTransaction(item.copy(number = number))
@@ -457,9 +463,33 @@ private fun Empty(title: String, detail: String) {
     }
 }
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TransactionDialog(accounts: List<AccountEntity>, onClose: () -> Unit, save: (TransactionEntity) -> Unit) {
-    var type by remember { mutableStateOf("هزینه") }
+private fun TransactionTypeSheet(onDismiss: () -> Unit, onSelect: (String) -> Unit) {
+    val choices = listOf(
+        "پول دادم" to Color(0xFFFC3030), "پول گرفتم" to Color(0xFF145C01),
+        "خرج کردم" to Color(0xFFFC3030), "هزینه کردم" to Color(0xFF145C01),
+        "هدیه دادم" to Color(0xFFFC3030), "هدیه گرفتم" to Color(0xFF145C01)
+    )
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White, shape = RoundedCornerShape(topStart = 42.dp, topEnd = 42.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 34.dp).padding(bottom = 22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            choices.chunked(2).forEach { pair ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(22.dp)) {
+                    pair.forEach { (label, color) ->
+                        Button(onClick = { onSelect(label) }, modifier = Modifier.weight(1f).height(76.dp), shape = RoundedCornerShape(44.dp), colors = ButtonDefaults.buttonColors(containerColor = color)) {
+                            Text(label, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TransactionDialog(accounts: List<AccountEntity>, initialType: String, onClose: () -> Unit, save: (TransactionEntity) -> Unit) {
+    var type by remember(initialType) { mutableStateOf(initialType) }
     var amount by remember { mutableStateOf("") }
     var account by remember { mutableStateOf(accounts.firstOrNull()?.id ?: "") }
     var party by remember { mutableStateOf("") }

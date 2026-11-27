@@ -4,10 +4,9 @@
   "private": true,
   "description": "CIA Persian offline-first personal finance app",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
+    "dev": "vite --host 0.0.0.0 --strictPort",
     "build": "vite build",
-    "cap:sync": "cap sync android",
-    "android:live": "cap run android --livereload --external"
+    "cap:sync": "cap sync android"
   },
   "dependencies": {
     "@capacitor/android": "8.6.3",

@@ -15,6 +15,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -79,13 +88,13 @@ private fun CiaApp() {
             NavigationBar {
                 tabs.forEachIndexed { i, label ->
                     NavigationBarItem(selected = tab == i, onClick = { tab = i },
-                        icon = { Text(listOf("⌂", "♙", "▣", "▤")[i]) },
+                        icon = { Icon(imageVector = listOf(Icons.Filled.Home, Icons.Filled.People, Icons.Filled.AccountBalanceWallet, Icons.Filled.BarChart)[i], contentDescription = label) },
                         label = { Text(label, fontSize = 10.sp) })
                 }
             }
         },
         floatingActionButton = {
-            if (tab == 0 || tab == 4) FloatingActionButton(onClick = { showTypePicker = true }) { Text("+", fontSize = 24.sp) }
+            if (tab == 0 || tab == 4) FloatingActionButton(onClick = { showTypePicker = true }, containerColor = Color(0xFFB58A45), contentColor = Color.White) { Icon(Icons.Filled.Add, contentDescription = "ثبت تراکنش") }
         }
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {
@@ -177,8 +186,8 @@ private fun HomeScreen(
                     Text("دفتر حساب و کتاب", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Text("برای تغییر دفتر حساب کلیک کنید", color = Color.White.copy(alpha = .65f), fontSize = 10.sp)
                 }
-                TextButton(onClick = reports) { Text("⚙", color = Color.White, fontSize = 20.sp) }
-                TextButton(onClick = all) { Text("▤", color = Color.White, fontSize = 20.sp) }
+                IconButton(onClick = reports) { Icon(Icons.Filled.BarChart, contentDescription = "گزارش‌ها", tint = Color.White) }
+                IconButton(onClick = all) { Icon(Icons.Filled.ReceiptLong, contentDescription = "تراکنش‌ها", tint = Color.White) }
             }
             Row(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("بازه:", color = navy, fontSize = 11.sp)
@@ -275,7 +284,7 @@ private fun HomeScreen(
                                 Text(item.description ?: item.category ?: item.type, fontSize = 9.sp, color = Color(0xFF707070), maxLines = 2)
                             }
                             Column(horizontalAlignment = Alignment.End) {
-                                val positive = item.type in setOf("درآمد", "پول گرفتم", "هزینه کردم", "هدیه گرفتم", "قرض گرفتم")
+                                val positive = item.type in setOf("درآمد", "پول گرفتم", "هدیه گرفتم", "قرض گرفتم")
                                 Text(money(item.amount), color = if (positive) Color(0xFF1B7F00) else Color(0xFFCF0202), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                 Text(if (positive) "دریافت کردم" else "پرداخت کردم", fontSize = 9.sp, color = Color(0xFF707070))
                             }
@@ -474,7 +483,7 @@ private fun NewPartyScreen(onBack: () -> Unit, onSaved: () -> Unit) {
 @Composable
 private fun ReportsScreen(txs: List<TransactionEntity>) {
     val income = txs.filter { it.type in setOf("درآمد", "پول گرفتم", "هزینه کردم", "هدیه گرفتم", "قرض گرفتم") }.sumOf { it.amount }
-    val expense = txs.filter { it.type in setOf("هزینه", "پول دادم", "هدیه دادم", "قرض دادم") }.sumOf { it.amount }
+    val expense = txs.filter { it.type in setOf("هزینه", "هزینه کردم", "خرج کردم", "پول دادم", "هدیه دادم", "قرض دادم") }.sumOf { it.amount }
     Heading("گزارش‌ها", "خلاصه دریافت‌ها و پرداخت‌ها")
     Metric("مجموع دریافتی", income, Color(0xFF287B55), Modifier.fillMaxWidth())
     Spacer(Modifier.height(10.dp))
@@ -644,7 +653,7 @@ private fun TrashDialog(items: List<TransactionEntity>, close: () -> Unit, resto
 }
 
 private fun signed(item: TransactionEntity): Long = when (item.type) {
-    "درآمد", "پول گرفتم", "هزینه کردم", "هدیه گرفتم", "قرض گرفتم" -> item.amount
-    "هزینه", "پول دادم", "هدیه دادم", "قرض دادم" -> -item.amount
+    "درآمد", "پول گرفتم", "هدیه گرفتم", "قرض گرفتم" -> item.amount
+    "هزینه", "هزینه کردم", "خرج کردم", "پول دادم", "هدیه دادم", "قرض دادم" -> -item.amount
     else -> 0L
 }

@@ -8,6 +8,9 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import androidx.room.Index
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import kotlinx.coroutines.flow.Flow
@@ -36,10 +39,28 @@ data class TransactionEntity(
     val sourceSmsId: String? = null
 )
 
+
+@Entity(tableName = "parties", indices = [Index(value = ["phone"], unique = true)])
+data class PartyEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val phone: String,
+    val nationalCode: String = "",
+    val postalCode: String = "",
+    val description: String = "",
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 @Dao
 interface CiaDao {
     @Query("SELECT * FROM accounts ORDER BY createdAt")
     fun observeAccounts(): Flow<List<AccountEntity>>
+
+    @Query("SELECT * FROM parties ORDER BY name COLLATE NOCASE")
+    fun observeParties(): Flow<List<PartyEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertParty(party: PartyEntity)
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAccount(account: AccountEntity)
@@ -69,15 +90,21 @@ interface CiaDao {
     suspend fun transactionCount(): Int
 }
 
-@Database(entities = [AccountEntity::class, TransactionEntity::class], version = 1, exportSchema = false)
+@Database(entities = [AccountEntity::class, TransactionEntity::class, PartyEntity::class], version = 2, exportSchema = false)
 abstract class CiaDatabase : RoomDatabase() {
     abstract fun dao(): CiaDao
 
     companion object {
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("CREATE TABLE IF NOT EXISTS parties (id TEXT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL, nationalCode TEXT NOT NULL, postalCode TEXT NOT NULL, description TEXT NOT NULL, createdAt INTEGER NOT NULL, PRIMARY KEY(id))")
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_parties_phone ON parties(phone)")
+            }
+        }
         @Volatile private var INSTANCE: CiaDatabase? = null
         fun get(context: Context): CiaDatabase = INSTANCE ?: synchronized(this) {
             INSTANCE ?: Room.databaseBuilder(context.applicationContext, CiaDatabase::class.java, "cia.db")
-                .fallbackToDestructiveMigration()
+                .addMigrations(MIGRATION_1_2)
                 .build().also { INSTANCE = it }
         }
     }

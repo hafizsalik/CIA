@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -13,6 +15,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
@@ -78,7 +82,7 @@ private fun CiaApp() {
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad).padding(16.dp)) {
             when (tab) {
-                0 -> HomeScreen(accounts, txs, { addTx = true }, { tab = 4 })
+                0 -> HomeScreen(accounts, txs, { addTx = true }, { tab = 4 }, { tab = 1 }, { tab = 2 }, { tab = 3 })
                 1 -> PartiesScreen(txs)
                 2 -> AccountList(accounts, txs) { addAccount = true }
                 3 -> ReportsScreen(txs)
@@ -115,36 +119,148 @@ private fun Heading(title: String, subtitle: String? = null) {
 }
 
 @Composable
-private fun HomeScreen(accounts: List<AccountEntity>, txs: List<TransactionEntity>, add: () -> Unit, all: () -> Unit) {
+private fun HomeScreen(
+    accounts: List<AccountEntity>, txs: List<TransactionEntity>, add: () -> Unit,
+    all: () -> Unit, people: () -> Unit, openAccounts: () -> Unit, reports: () -> Unit
+) {
     val balance = accounts.sumOf { a -> a.openingBalance + txs.filter { it.accountId == a.id }.sumOf { signed(it) } }
-    val income = txs.filter { it.type in setOf("درآمد", "پول گرفتم", "هدیه گرفتم", "قرض گرفتم") }.sumOf { it.amount }
-    val expense = txs.filter { it.type in setOf("هزینه", "پول دادم", "هدیه دادم", "قرض دادم") }.sumOf { it.amount }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Text("دفتر حساب و کتاب", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-        Text("مدیریت مالی شخصی شما", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(18.dp))
-        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF174F43))) {
-            Column(Modifier.fillMaxWidth().padding(20.dp)) {
-                Text("موجودی کل حساب‌ها", color = Color.White.copy(alpha = .8f))
-                Text(money(balance) + " تومان", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                Text(accounts.size.toString() + " حساب فعال", color = Color.White.copy(alpha = .8f), fontSize = 11.sp)
+    val incomeTypes = setOf("درآمد", "پول گرفتم", "هدیه گرفتم", "قرض گرفتم")
+    val expenseTypes = setOf("هزینه", "پول دادم", "هدیه دادم", "قرض دادم")
+    val income = txs.filter { it.type in incomeTypes }.sumOf { it.amount }
+    val expense = txs.filter { it.type in expenseTypes }.sumOf { it.amount }
+    val parties = txs.mapNotNull { it.party?.takeIf(String::isNotBlank) }.distinct()
+    val recent = txs.take(5)
+    val dayMillis = 24L * 60L * 60L * 1000L
+    val today = System.currentTimeMillis() / dayMillis * dayMillis
+    val week = (6 downTo 0).map { offset ->
+        val start = today - offset * dayMillis
+        val dayTxs = txs.filter { it.occurredAt >= start && it.occurredAt < start + dayMillis }
+        dayTxs.filter { it.type in incomeTypes }.sumOf { it.amount } to
+            dayTxs.filter { it.type in expenseTypes }.sumOf { it.amount }
+    }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("دفتر حساب و کتاب", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("همه حساب‌ها، یک نگاه", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Surface(shape = CircleShape, color = Color(0xFFE7F1EC), modifier = Modifier.size(44.dp)) {
+                Box(contentAlignment = Alignment.Center) { Text("CIA", color = Color(0xFF246B57), fontWeight = FontWeight.ExtraBold, fontSize = 13.sp) }
             }
         }
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Metric("دریافتی", income, Color(0xFF287B55), Modifier.weight(1f))
-            Metric("پرداختی", expense, Color(0xFFB64C4C), Modifier.weight(1f))
+        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF174F43))) {
+            Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("موجودی کل حساب‌ها", color = Color.White.copy(alpha = .82f), fontSize = 13.sp, modifier = Modifier.weight(1f))
+                    Text("● فعال", color = Color(0xFFBCE6D0), fontSize = 10.sp)
+                }
+                Text(money(balance), color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Bold)
+                Text("تومان", color = Color.White.copy(alpha = .8f), fontSize = 11.sp)
+                HorizontalDivider(color = Color.White.copy(alpha = .18f))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(accounts.size.toString() + " حساب فعال", color = Color.White.copy(alpha = .85f), fontSize = 11.sp, modifier = Modifier.weight(1f))
+                    TextButton(onClick = openAccounts) { Text("مدیریت حساب‌ها", color = Color.White, fontSize = 11.sp) }
+                }
+            }
         }
-        Spacer(Modifier.height(18.dp))
-        Text("دسترسی سریع", fontWeight = FontWeight.Bold, fontSize = 17.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = add, modifier = Modifier.weight(1f)) { Text("＋ ثبت تراکنش") }
-            OutlinedButton(onClick = all, modifier = Modifier.weight(1f)) { Text("همه تراکنش‌ها") }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            SummaryTile("دریافتی", income, Color(0xFF247B58), "↑", Modifier.weight(1f))
+            SummaryTile("پرداختی", expense, Color(0xFFB64C4C), "↓", Modifier.weight(1f))
         }
-        Spacer(Modifier.height(18.dp))
-        Text("آخرین تراکنش‌ها", fontWeight = FontWeight.Bold, fontSize = 17.sp)
-        if (txs.isEmpty()) Empty("هنوز تراکنشی ثبت نشده است", "با دکمه بالا اولین تراکنش را ثبت کنید.")
-        txs.take(5).forEach { TxRow(it) {} }
+        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("روند دخل‌وخرج", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text("مقایسه دریافت و پرداخت در ۷ روز اخیر", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Text("۷ روز", color = MaterialTheme.colorScheme.primary, fontSize = 11.sp)
+                }
+                CashFlowBars(week)
+                Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(Modifier.size(8.dp), shape = CircleShape, color = Color(0xFF287B55)) {}
+                        Spacer(Modifier.width(5.dp)); Text("دریافت", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(Modifier.size(8.dp), shape = CircleShape, color = Color(0xFFD77A70)) {}
+                        Spacer(Modifier.width(5.dp)); Text("پرداخت", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("دسترسی سریع", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(onClick = add, modifier = Modifier.weight(1f), shape = RoundedCornerShape(14.dp), contentPadding = PaddingValues(vertical = 13.dp)) { Text("＋ ثبت تراکنش", fontSize = 12.sp) }
+                OutlinedButton(onClick = all, modifier = Modifier.weight(1f), shape = RoundedCornerShape(14.dp), contentPadding = PaddingValues(vertical = 13.dp)) { Text("فهرست تراکنش‌ها", fontSize = 12.sp) }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                QuickLink("اشخاص", parties.size.toString() + " طرف‌حساب", "♙", people, Modifier.weight(1f))
+                QuickLink("حساب‌ها", accounts.size.toString() + " حساب", "▣", openAccounts, Modifier.weight(1f))
+                QuickLink("گزارش‌ها", "خلاصه مالی", "▤", reports, Modifier.weight(1f))
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("آخرین تراکنش‌ها", fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                TextButton(onClick = all) { Text("مشاهده همه", fontSize = 11.sp) }
+            }
+            if (recent.isEmpty()) Empty("هنوز تراکنشی ثبت نشده است", "با ثبت اولین دریافت یا پرداخت، گردش مالی شما اینجا نمایش داده می‌شود.")
+            else recent.forEach { item -> TxRow(item) {} }
+        }
+        Spacer(Modifier.height(4.dp))
+    }
+}
+
+@Composable
+private fun SummaryTile(title: String, amount: Long, color: Color, symbol: String, modifier: Modifier) {
+    Card(modifier, shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = color.copy(alpha = .09f))) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(symbol, color = color, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(6.dp)); Text(title, color = color, fontSize = 12.sp)
+            }
+            Text(money(amount), color = color, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text("تومان", color = color.copy(alpha = .8f), fontSize = 10.sp)
+        }
+    }
+}
+
+@Composable
+private fun QuickLink(title: String, detail: String, symbol: String, onClick: () -> Unit, modifier: Modifier) {
+    Card(modifier, onClick = onClick, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .55f))) {
+        Column(Modifier.fillMaxWidth().padding(vertical = 13.dp, horizontal = 8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(symbol, color = MaterialTheme.colorScheme.primary, fontSize = 20.sp)
+            Text(title, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+            Text(detail, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp, maxLines = 1)
+        }
+    }
+}
+
+@Composable
+private fun CashFlowBars(values: List<Pair<Long, Long>>) {
+    val maxValue = (values.maxOfOrNull { maxOf(it.first, it.second) } ?: 0L).coerceAtLeast(1L)
+    val dayMillis = 24L * 60L * 60L * 1000L
+    val today = System.currentTimeMillis() / dayMillis * dayMillis
+    val labels = (6 downTo 0).map { offset ->
+        SimpleDateFormat("EE", Locale("fa", "IR")).format(Date(today - offset * dayMillis))
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Canvas(Modifier.fillMaxWidth().height(112.dp)) {
+            val groupWidth = size.width / 7f
+            val barWidth = groupWidth * .24f
+            values.forEachIndexed { index, pair ->
+                val center = groupWidth * (index + .5f)
+                val incomeHeight = (pair.first.toFloat() / maxValue) * size.height * .88f
+                val expenseHeight = (pair.second.toFloat() / maxValue) * size.height * .88f
+                drawRoundRect(Color(0xFF287B55), Offset(center - barWidth - 2.dp.toPx(), size.height - incomeHeight), Size(barWidth, incomeHeight.coerceAtLeast(3.dp.toPx())), cornerRadius = androidx.compose.ui.geometry.CornerRadius(5.dp.toPx()))
+                drawRoundRect(Color(0xFFD77A70), Offset(center + 2.dp.toPx(), size.height - expenseHeight), Size(barWidth, expenseHeight.coerceAtLeast(3.dp.toPx())), cornerRadius = androidx.compose.ui.geometry.CornerRadius(5.dp.toPx()))
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            labels.forEach { Text(it, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
     }
 }
 

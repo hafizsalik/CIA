@@ -3,6 +3,9 @@ package com.cia.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.provider.ContactsContract
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,6 +29,7 @@ import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -478,26 +482,53 @@ private fun NewPartyScreen(existing: List<PartyEntity>, onBack: () -> Unit, onSa
     var description by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
     val navy = Color(0xFF152F8C)
-    Column(Modifier.fillMaxSize().background(Color(0xFFF5F5F5))) {
+    val contactPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.query(uri, arrayOf(ContactsContract.Contacts.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) name = cursor.getString(0) ?: name
+                }
+                val contactId = uri.lastPathSegment
+                if (contactId != null) {
+                    context.contentResolver.query(
+                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                        arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
+                        ContactsContract.CommonDataKinds.Phone.CONTACT_ID + "=?",
+                        arrayOf(contactId), null
+                    )?.use { cursor -> if (cursor.moveToFirst()) phone = cursor.getString(0) ?: phone }
+                }
+            }
+        }
+    }
+    Column(Modifier.fillMaxSize().background(Color.White)) {
         Row(Modifier.fillMaxWidth().height(138.dp).background(navy).padding(horizontal = 22.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "بازگشت", tint = Color.White) }
-            Text("طرف حساب جدید", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text("طرف حساب جدید", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         }
-        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 28.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            OutlinedTextField(name, { name = it; error = "" }, label = { Text("نام و نام خانوادگی") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(6.dp))
-            OutlinedTextField(phone, { phone = it.filter { ch -> ch.isDigit() || ch == '+' || ch == ' ' } }, label = { Text("شماره تماس") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(6.dp))
-            OutlinedTextField(nationalCode, { nationalCode = it.filter(Char::isDigit) }, label = { Text("کد ملی (اختیاری)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(6.dp))
-            OutlinedTextField(postalCode, { postalCode = it.filter(Char::isDigit) }, label = { Text("کد پستی (اختیاری)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(6.dp))
-            OutlinedTextField(description, { description = it }, label = { Text("توضیحات") }, modifier = Modifier.fillMaxWidth(), minLines = 4, shape = RoundedCornerShape(6.dp))
+        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(top = 45.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(23.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                OutlinedButton(onClick = { contactPicker.launch(null) }, modifier = Modifier.width(92.dp).height(94.dp), shape = RoundedCornerShape(6.dp), contentPadding = PaddingValues(4.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF001870))) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Icon(Icons.Filled.Contacts, contentDescription = null, modifier = Modifier.size(28.dp))
+                        Text("مخاطبان", fontSize = 12.sp)
+                    }
+                }
+                OutlinedTextField(name, { name = it; error = "" }, placeholder = { Text("نام و نام خانوادگی", color = Color.Gray) }, modifier = Modifier.weight(1f).height(94.dp), singleLine = true, shape = RoundedCornerShape(6.dp))
+            }
+            OutlinedTextField(phone, { phone = it.filter { ch -> ch.isDigit() || ch == '+' || ch == ' ' } }, placeholder = { Text("شماره تماس", color = Color.Gray) }, modifier = Modifier.fillMaxWidth().height(94.dp), singleLine = true, shape = RoundedCornerShape(6.dp))
+            OutlinedTextField(nationalCode, { nationalCode = it.filter(Char::isDigit) }, placeholder = { Text("کد ملی (اختیاری)", color = Color.Gray) }, modifier = Modifier.fillMaxWidth().height(94.dp), singleLine = true, shape = RoundedCornerShape(6.dp))
+            OutlinedTextField(postalCode, { postalCode = it.filter(Char::isDigit) }, placeholder = { Text("کد پستی (اختیاری)", color = Color.Gray) }, modifier = Modifier.fillMaxWidth().height(94.dp), singleLine = true, shape = RoundedCornerShape(6.dp))
+            OutlinedTextField(description, { description = it }, placeholder = { Text("توضیحات", color = Color.Gray) }, modifier = Modifier.fillMaxWidth().height(158.dp), minLines = 4, shape = RoundedCornerShape(6.dp))
             if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, fontSize = 11.sp)
         }
         Button(onClick = {
             if (name.isBlank() || phone.isBlank()) error = "نام و شماره تماس را وارد کنید."
-            else {
-                if (existing.any { it.phone == phone.trim() }) error = "این شماره تماس قبلاً ثبت شده است."
-                else onSaved(PartyEntity(UUID.randomUUID().toString(), name.trim(), phone.trim(), nationalCode.trim(), postalCode.trim(), description.trim()))
-            }
-        }, modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).height(62.dp).padding(bottom = 8.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = navy)) { Text("ثبت طرف حساب", fontSize = 17.sp, fontWeight = FontWeight.Bold) }
+            else if (existing.any { it.phone == phone.trim() }) error = "این شماره تماس قبلاً ثبت شده است."
+            else onSaved(PartyEntity(UUID.randomUUID().toString(), name.trim(), phone.trim(), nationalCode.trim(), postalCode.trim(), description.trim()))
+        }, modifier = Modifier.fillMaxWidth().padding(horizontal = 59.dp).height(94.dp).padding(bottom = 0.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = navy)) {
+            Text("ثبت طرف حساب", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(18.dp))
     }
 }
 

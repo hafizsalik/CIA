@@ -534,7 +534,7 @@ private fun Empty(title: String, detail: String) {
 private fun TransactionTypeSheet(onDismiss: () -> Unit, onSelect: (String) -> Unit) {
     val choices = listOf(
         "پول دادم" to Color(0xFFFC3030), "پول گرفتم" to Color(0xFF145C01),
-        "خرج کردم" to Color(0xFFFC3030), "هزینه کردم" to Color(0xFF145C01),
+        "خرج کردم" to Color(0xFFFC3030), "هزینه کردم" to Color(0xFFFC3030),
         "هدیه دادم" to Color(0xFFFC3030), "هدیه گرفتم" to Color(0xFF145C01)
     )
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White, shape = RoundedCornerShape(topStart = 42.dp, topEnd = 42.dp)) {

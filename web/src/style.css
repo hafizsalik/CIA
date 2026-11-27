@@ -1,6 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap');
-
-:root{font-family:Vazirmatn,Tahoma,sans-serif;color:#18251f;background:#f4f7f5;font-synthesis:none;text-rendering:optimizeLegibility}
+:root{font-family:Tahoma,Arial,sans-serif;color:#18251f;background:#f4f7f5;font-synthesis:none;text-rendering:optimizeLegibility}
 *{box-sizing:border-box}
 body{margin:0;min-width:320px;min-height:100vh}
 button{font:inherit}

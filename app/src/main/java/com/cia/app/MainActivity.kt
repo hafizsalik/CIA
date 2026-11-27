@@ -85,15 +85,20 @@ private fun CiaApp() {
             if (tab == 0 || tab == 4) FloatingActionButton(onClick = { addTx = true }) { Text("+", fontSize = 24.sp) }
         }
     ) { pad ->
-        Column(Modifier.fillMaxSize().padding(pad).padding(16.dp)) {
-            when (tab) {
-                0 -> HomeScreen(accounts, txs, { addTx = true }, { tab = 4 }, { tab = 1 }, { tab = 2 }, { tab = 3 })
-                1 -> PartiesScreen(txs)
-                2 -> AccountList(accounts, txs) { addAccount = true }
-                3 -> ReportsScreen(txs)
-                4 -> TransactionList(txs, { addTx = true }) { id -> scope.launch { dao.moveToTrash(id, System.currentTimeMillis()) } }
-                5 -> SmsScreen()
-                else -> MoreScreen(trash.size) { showTrash = true }
+        Column(Modifier.fillMaxSize().padding(pad)) {
+            if (tab == 0) {
+                HomeScreen(accounts, txs, { addTx = true }, { tab = 4 }, { tab = 1 }, { tab = 2 }, { tab = 3 })
+            } else {
+                Column(Modifier.fillMaxSize().padding(16.dp)) {
+                    when (tab) {
+                        1 -> PartiesScreen(txs)
+                        2 -> AccountList(accounts, txs) { addAccount = true }
+                        3 -> ReportsScreen(txs)
+                        4 -> TransactionList(txs, { addTx = true }) { id -> scope.launch { dao.moveToTrash(id, System.currentTimeMillis()) } }
+                        5 -> SmsScreen()
+                        else -> MoreScreen(trash.size) { showTrash = true }
+                    }
+                }
             }
         }
     }
@@ -244,7 +249,7 @@ private fun HomeScreen(
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(onClick = people, modifier = Modifier.weight(1f), shape = RoundedCornerShape(30.dp), colors = ButtonDefaults.buttonColors(containerColor = navy)) { Text("طرف‌حساب‌ها", fontSize = 11.sp) }
-                OutlinedButton(onClick = add, modifier = Modifier.weight(1f), shape = RoundedCornerShape(30.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = navy)) { Text("＋ طرف‌حساب جدید", fontSize = 11.sp) }
+                OutlinedButton(onClick = add, modifier = Modifier.weight(1f), shape = RoundedCornerShape(30.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = navy)) { Text("＋ ثبت تراکنش", fontSize = 11.sp) }
             }
         }
     }

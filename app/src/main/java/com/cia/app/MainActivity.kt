@@ -482,7 +482,7 @@ private fun NewPartyScreen(onBack: () -> Unit, onSaved: () -> Unit) {
 
 @Composable
 private fun ReportsScreen(txs: List<TransactionEntity>) {
-    val income = txs.filter { it.type in setOf("درآمد", "پول گرفتم", "هزینه کردم", "هدیه گرفتم", "قرض گرفتم") }.sumOf { it.amount }
+    val income = txs.filter { it.type in setOf("درآمد", "پول گرفتم", "هدیه گرفتم", "قرض گرفتم") }.sumOf { it.amount }
     val expense = txs.filter { it.type in setOf("هزینه", "هزینه کردم", "خرج کردم", "پول دادم", "هدیه دادم", "قرض دادم") }.sumOf { it.amount }
     Heading("گزارش‌ها", "خلاصه دریافت‌ها و پرداخت‌ها")
     Metric("مجموع دریافتی", income, Color(0xFF287B55), Modifier.fillMaxWidth())

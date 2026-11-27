@@ -84,6 +84,21 @@ private fun CiaApp() {
         if (accounts.isEmpty()) dao.insertAccount(AccountEntity(UUID.randomUUID().toString(), "کیف پول نقدی"))
     }
 
+    LaunchedEffect(Unit) {
+        val legacy = context.getSharedPreferences("cia_parties", android.content.Context.MODE_PRIVATE)
+        val raw = legacy.getString("records", "[]") ?: "[]"
+        val records = runCatching { org.json.JSONArray(raw) }.getOrElse { org.json.JSONArray() }
+        for (index in 0 until records.length()) {
+            val item = records.optJSONObject(index) ?: continue
+            val phone = item.optString("phone").trim()
+            val name = item.optString("name").trim()
+            if (name.isNotBlank() && phone.isNotBlank() && dao.findPartyByPhone(phone) == null) {
+                dao.insertParty(PartyEntity(UUID.randomUUID().toString(), name, phone, item.optString("nationalCode"), item.optString("postalCode"), item.optString("description")))
+            }
+        }
+        if (records.length() > 0) legacy.edit().remove("records").apply()
+    }
+
     Scaffold(
         bottomBar = {
             NavigationBar {

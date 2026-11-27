@@ -107,16 +107,18 @@ private fun CiaApp() {
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                tabs.forEachIndexed { i, label ->
-                    NavigationBarItem(selected = tab == i, onClick = { tab = i },
-                        icon = { Icon(imageVector = listOf(Icons.Filled.Home, Icons.Filled.People, Icons.Filled.AccountBalanceWallet, Icons.Filled.BarChart)[i], contentDescription = label) },
-                        label = { Text(label, fontSize = 10.sp) })
+            if (!showNewParty) {
+                NavigationBar {
+                    tabs.forEachIndexed { i, label ->
+                        NavigationBarItem(selected = tab == i, onClick = { tab = i },
+                            icon = { Icon(imageVector = listOf(Icons.Filled.Home, Icons.Filled.People, Icons.Filled.AccountBalanceWallet, Icons.Filled.BarChart)[i], contentDescription = label) },
+                            label = { Text(label, fontSize = 10.sp) })
+                    }
                 }
             }
         },
         floatingActionButton = {
-            if (tab == 0 || tab == 4) FloatingActionButton(onClick = { showTypePicker = true }, containerColor = Color(0xFFB58A45), contentColor = Color.White) { Icon(Icons.Filled.Add, contentDescription = "ثبت تراکنش") }
+            if (!showNewParty && (tab == 0 || tab == 4)) FloatingActionButton(onClick = { showTypePicker = true }, containerColor = Color(0xFFB58A45), contentColor = Color.White) { Icon(Icons.Filled.Add, contentDescription = "ثبت تراکنش") }
         }
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {

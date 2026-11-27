@@ -90,7 +90,8 @@
 const KEY='cia.web.transactions.v1';let transactions=JSON.parse(localStorage.getItem(KEY)||'[]');let page='home',txType='income';
 const fmt=n=>new Intl.NumberFormat('fa-IR').format(Math.abs(Number(n)||0));const money=n=>fmt(n)+' تومان';
 const faDate=d=>new Intl.DateTimeFormat('fa-IR',{year:'numeric',month:'short',day:'numeric'}).format(new Date(d));
-function partyNet(t){if(t.kind==='پول دادم'||t.kind==='قرض دادم')return Number(t.amount)||0;if(t.kind==='پول گرفتم'||t.kind==='قرض گرفتم')return -(Number(t.amount)||0);return t.kind?0:(t.type==='expense'?(Number(t.amount)||0):-(Number(t.amount)||0))}\nfunction totals(){return transactions.reduce((a,t)=>{a.balance+=(t.type==='income'?1:-1)*t.amount;a[t.type]+=t.amount;return a},{balance:0,income:0,expense:0})}
+function partyNet(t){if(t.kind==='پول دادم'||t.kind==='قرض دادم')return Number(t.amount)||0;if(t.kind==='پول گرفتم'||t.kind==='قرض گرفتم')return -(Number(t.amount)||0);return t.kind?0:(t.type==='expense'?(Number(t.amount)||0):-(Number(t.amount)||0))}
+function totals(){return transactions.reduce((a,t)=>{a.balance+=(t.type==='income'?1:-1)*t.amount;a[t.type]+=t.amount;return a},{balance:0,income:0,expense:0})}
 function txRow(t){return '<div class="tx"><div class="tx-icon">'+(t.type==='income'?'↙':'↗')+'</div><div class="tx-main"><b>'+esc(t.party|| (t.type==='income'?'دریافت وجه':'پرداخت وجه'))+'</b><small>'+esc(t.account)+' · '+faDate(t.date)+'</small></div><div class="tx-amount '+(t.type==='income'?'positive':'negative')+'">'+(t.type==='income'?'+':'−')+fmt(t.amount)+'</div></div>'}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 let homeInnerTab='people',homePeriod='all';let selectedKind='پول گرفتم';

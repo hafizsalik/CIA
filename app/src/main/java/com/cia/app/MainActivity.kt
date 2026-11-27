@@ -274,7 +274,7 @@ private fun HomeScreen(
                                 Text(item.description ?: item.category ?: item.type, fontSize = 9.sp, color = Color(0xFF707070), maxLines = 2)
                             }
                             Column(horizontalAlignment = Alignment.End) {
-                                val positive = item.type in setOf("درآمد", "پول گرفتم", "هدیه گرفتم", "قرض گرفتم")
+                                val positive = item.type in setOf("درآمد", "پول گرفتم", "هزینه کردم", "هدیه گرفتم", "قرض گرفتم")
                                 Text(money(item.amount), color = if (positive) Color(0xFF1B7F00) else Color(0xFFCF0202), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                 Text(if (positive) "دریافت کردم" else "پرداخت کردم", fontSize = 9.sp, color = Color(0xFF707070))
                             }
@@ -366,7 +366,7 @@ private fun TransactionList(txs: List<TransactionEntity>, add: () -> Unit, delet
 
 @Composable
 private fun TxRow(item: TransactionEntity, delete: () -> Unit) {
-    val positive = item.type in setOf("درآمد", "پول گرفتم", "هدیه گرفتم", "قرض گرفتم")
+    val positive = item.type in setOf("درآمد", "پول گرفتم", "هزینه کردم", "هدیه گرفتم", "قرض گرفتم")
     Card(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -421,7 +421,7 @@ private fun PartiesScreen(txs: List<TransactionEntity>) {
 
 @Composable
 private fun ReportsScreen(txs: List<TransactionEntity>) {
-    val income = txs.filter { it.type in setOf("درآمد", "پول گرفتم", "هدیه گرفتم", "قرض گرفتم") }.sumOf { it.amount }
+    val income = txs.filter { it.type in setOf("درآمد", "پول گرفتم", "هزینه کردم", "هدیه گرفتم", "قرض گرفتم") }.sumOf { it.amount }
     val expense = txs.filter { it.type in setOf("هزینه", "پول دادم", "هدیه دادم", "قرض دادم") }.sumOf { it.amount }
     Heading("گزارش‌ها", "خلاصه دریافت‌ها و پرداخت‌ها")
     Metric("مجموع دریافتی", income, Color(0xFF287B55), Modifier.fillMaxWidth())
@@ -592,7 +592,7 @@ private fun TrashDialog(items: List<TransactionEntity>, close: () -> Unit, resto
 }
 
 private fun signed(item: TransactionEntity): Long = when (item.type) {
-    "درآمد", "پول گرفتم", "هدیه گرفتم", "قرض گرفتم" -> item.amount
+    "درآمد", "پول گرفتم", "هزینه کردم", "هدیه گرفتم", "قرض گرفتم" -> item.amount
     "هزینه", "پول دادم", "هدیه دادم", "قرض دادم" -> -item.amount
     else -> 0L
 }

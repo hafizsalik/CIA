@@ -13,8 +13,17 @@ android {
         applicationId = "com.cia.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
+    }
+
+    buildTypes {
+        // Keep preview builds installable alongside any previously installed CIA build.
+        // GitHub Actions creates a fresh debug signing key on each run.
+        debug {
+            applicationIdSuffix = ".preview"
+            versionNameSuffix = "-preview"
+        }
     }
 
     buildFeatures { compose = true }

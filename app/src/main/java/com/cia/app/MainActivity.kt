@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF152F8C), secondary = Color(0xFFB58A45), background = Color(0xFFF5F5F5), surface = Color.White, surfaceVariant = Color(0xFFEFF2FA))) {
+            MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF19345B), secondary = Color(0xFFC29A62), background = Color(0xFFF4F6FA), surface = Color.White, surfaceVariant = Color(0xFFE9EEF5))) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     Surface(Modifier.fillMaxSize()) { CiaApp() }
                 }
@@ -207,24 +207,24 @@ private fun HomeScreen(
     val receivableTotal = parties.sumOf { it.balance.coerceAtLeast(0L) }
     val payableTotal = parties.sumOf { (-it.balance).coerceAtLeast(0L) }
     val balance = accounts.sumOf { a -> a.openingBalance + txs.filter { it.accountId == a.id }.sumOf { signed(it) } }
-    val navy = Color(0xFF152F8C)
-    val pale = Color(0xFFF5F5F5)
+    val navy = Color(0xFF19345B)
+    val pale = Color(0xFFF4F6FA)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Column(Modifier.fillMaxWidth().background(navy).padding(horizontal = 16.dp).padding(top = 10.dp, bottom = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.fillMaxWidth().background(navy).padding(horizontal = 18.dp).padding(top = 16.dp, bottom = 22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(shape = CircleShape, color = Color.White, modifier = Modifier.size(48.dp)) {
-                    Box(contentAlignment = Alignment.Center) { Text("CIA", color = navy, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp) }
+                    Box(contentAlignment = Alignment.Center) { Text("CIA", color = navy, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp) }
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text("دفتر حساب و کتاب", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Text("برای تغییر دفتر حساب کلیک کنید", color = Color.White.copy(alpha = .65f), fontSize = 10.sp)
+                    Text("برای تغییر دفتر حساب کلیک کنید", color = Color.White.copy(alpha = .65f), fontSize = 12.sp)
                 }
                 IconButton(onClick = reports) { Icon(Icons.Filled.BarChart, contentDescription = "گزارش‌ها", tint = Color.White) }
                 IconButton(onClick = all) { Icon(Icons.Filled.ReceiptLong, contentDescription = "تراکنش‌ها", tint = Color.White) }
             }
-            Row(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("بازه:", color = navy, fontSize = 11.sp)
+            Row(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(14.dp)).padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("بازه:", color = navy, fontSize = 12.sp)
                 Spacer(Modifier.width(8.dp))
                 listOf("مانده", "ماه جاری", "امروز").forEachIndexed { i, label ->
                     FilterChip(selected = period == i, onClick = { period = i }, label = { Text(label, fontSize = 10.sp) }, modifier = Modifier.padding(horizontal = 2.dp),
@@ -242,13 +242,13 @@ private fun HomeScreen(
                     }
                 }
             }
-            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("وضعیت مانده طرف‌حساب‌ها", color = Color(0xFF707070), fontSize = 11.sp)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("بدهکارم", color = Color(0xFF00A105), fontSize = 11.sp)
-                            Text(money(payableTotal), color = navy, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                            Text(money(payableTotal), color = navy, fontSize = 19.sp, fontWeight = FontWeight.Bold)
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text("طلبکارم", color = Color(0xFFCF0202), fontSize = 11.sp)
@@ -258,7 +258,7 @@ private fun HomeScreen(
                 }
             }
         }
-        Column(Modifier.fillMaxWidth().background(pale).padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.fillMaxWidth().background(pale).padding(horizontal = 18.dp, vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(onClick = openAccounts, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = navy)) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("مشاهده صورت‌حساب‌های زنده", fontSize = 13.sp, fontWeight = FontWeight.Bold)

@@ -110,10 +110,13 @@ private fun CiaApp() {
         bottomBar = {
             if (!showNewParty) {
                 NavigationBar {
-                    tabs.forEachIndexed { i, label ->
-                        NavigationBarItem(selected = tab == i, onClick = { tab = i },
-                            icon = { Icon(imageVector = listOf(Icons.Filled.Home, Icons.Filled.People, Icons.Filled.AccountBalanceWallet, Icons.Filled.BarChart, Icons.Filled.ReceiptLong, Icons.Filled.Email, Icons.Filled.Settings)[i], contentDescription = label) },
-                            label = { Text(label, fontSize = 10.sp) })
+                    // Keep only the four most-used destinations in the bottom bar.
+                    listOf(0, 1, 2, 6).forEach { destination ->
+                        val label = tabs[destination]
+                        val icon = listOf(Icons.Filled.Home, Icons.Filled.People, Icons.Filled.AccountBalanceWallet, Icons.Filled.Settings)[listOf(0, 1, 2, 6).indexOf(destination)]
+                        NavigationBarItem(selected = tab == destination, onClick = { tab = destination },
+                            icon = { Icon(imageVector = icon, contentDescription = label) },
+                            label = { Text(label, fontSize = 11.sp, maxLines = 1) })
                     }
                 }
             }
@@ -133,7 +136,13 @@ private fun CiaApp() {
                         3 -> ReportsScreen(txs)
                         4 -> TransactionList(txs, { addTx = true }) { id -> scope.launch { dao.moveToTrash(id, System.currentTimeMillis()) } }
                         5 -> SmsScreen()
-                        else -> MoreScreen(trash.size) { showTrash = true }
+                        else -> MoreScreen(
+                            trashCount = trash.size,
+                            openTrash = { showTrash = true },
+                            openTransactions = { tab = 4 },
+                            openSms = { tab = 5 },
+                            openReports = { tab = 3 }
+                        )
                     }
                 }
             }
@@ -555,17 +564,47 @@ private fun SmsScreen() {
 }
 
 @Composable
-private fun MoreScreen(count: Int, openTrash: () -> Unit) {
-    Heading("بیشتر", "ابزارها و تنظیمات")
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
-            Text("سطل زباله", fontWeight = FontWeight.Bold)
-            Text(count.toString() + " تراکنش حذف‌شده", fontSize = 12.sp)
+private fun MoreScreen(
+    trashCount: Int,
+    openTrash: () -> Unit,
+    openTransactions: () -> Unit,
+    openSms: () -> Unit,
+    openReports: () -> Unit
+) {
+    Heading("بیشتر", "دسترسی به بخش‌های برنامه")
+    val navy = Color(0xFF152F8C)
+    val destinations = listOf(
+        Triple("تراکنش‌ها", "مشاهده و مدیریت دریافت‌ها و پرداخت‌ها", "↔") to openTransactions,
+        Triple("گزارش‌ها", "خلاصه عملکرد مالی و آمار", "▥") to openReports,
+        Triple("پیامک‌های بانکی", "بررسی پیامک‌ها و ثبت با تأیید شما", "✉") to openSms
+    )
+    destinations.forEach { (item, action) ->
+        Card(onClick = action, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
+            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFFEAF0FF)) {
+                    Box(Modifier.size(42.dp), contentAlignment = Alignment.Center) {
+                        Text(item.third, color = navy, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(item.first, fontWeight = FontWeight.SemiBold)
+                    Text(item.second, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(Icons.Filled.ArrowBack, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+    Spacer(Modifier.height(4.dp))
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
+        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("سطل زباله", fontWeight = FontWeight.Bold)
+                Text("$trashCount تراکنش حذف‌شده", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             TextButton(onClick = openTrash) { Text("مشاهده و بازیابی") }
         }
     }
-    Spacer(Modifier.height(10.dp))
-    Text("گزارش PDF، Excel، دسته‌بندی‌ها و پشتیبان‌گیری در مراحل بعدی اضافه می‌شوند.", fontSize = 12.sp)
 }
 
 @Composable

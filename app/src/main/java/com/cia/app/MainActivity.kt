@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandMore
@@ -65,7 +66,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private val tabs = listOf("خانه", "اشخاص", "حساب‌ها", "گزارش‌ها", "تراکنش‌ها", "پیامک‌ها")
+private val tabs = listOf("خانه", "اشخاص", "حساب‌ها", "گزارش‌ها", "تراکنش‌ها", "پیامک‌ها", "بیشتر")
 private val types = listOf("پول گرفتم", "پول دادم", "درآمد", "هزینه", "هدیه گرفتم", "هدیه دادم", "انتقال بین حساب‌ها", "قرض دادم", "قرض گرفتم", "تسویه بدهی")
 private val partyTypes = setOf("پول گرفتم", "پول دادم", "قرض دادم", "قرض گرفتم", "تسویه بدهی")
 
@@ -111,7 +112,7 @@ private fun CiaApp() {
                 NavigationBar {
                     tabs.forEachIndexed { i, label ->
                         NavigationBarItem(selected = tab == i, onClick = { tab = i },
-                            icon = { Icon(imageVector = listOf(Icons.Filled.Home, Icons.Filled.People, Icons.Filled.AccountBalanceWallet, Icons.Filled.BarChart, Icons.Filled.ReceiptLong, Icons.Filled.Settings)[i], contentDescription = label) },
+                            icon = { Icon(imageVector = listOf(Icons.Filled.Home, Icons.Filled.People, Icons.Filled.AccountBalanceWallet, Icons.Filled.BarChart, Icons.Filled.ReceiptLong, Icons.Filled.Email, Icons.Filled.Settings)[i], contentDescription = label) },
                             label = { Text(label, fontSize = 10.sp) })
                     }
                 }
